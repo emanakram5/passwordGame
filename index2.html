@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Password Ruin — Chaotic Password Puzzle</title>
+<style>
+  :root{
+    --bg:#0b0f14; --card:#0f1720; --accent:#ff3b6b; --accent2:#7c5cff;
+    --muted:#97a0b3; --good:#48e6a8; --bad:#ff6b6b;
+    --glass: rgba(255,255,255,0.03);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(180deg,#071019 0%, #07101b 60%); color:#e6eef6;
+    display:flex; align-items:center; justify-content:center; padding:28px;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  .app{
+    width:100%; max-width:980px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    border-radius:14px; padding:22px; box-shadow:0 10px 40px rgba(2,6,23,0.6);
+    display:grid; grid-template-columns: 1fr 360px; gap:18px;
+  }
+
+  header{grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; gap:12px}
+  .logo{display:flex; gap:12px; align-items:center}
+  .logo .icon{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800; color:white}
+  h1{font-size:20px;margin:0}
+  .meta{color:var(--muted); font-size:13px}
+
+  .play-area{
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    border-radius:12px; padding:18px; min-height:420px; position:relative; overflow:hidden;
+    border:1px solid rgba(255,255,255,0.03)
+  }
+
+  .level-header{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .level-title{font-weight:700}
+  .score-pill{background:var(--glass); padding:8px 12px;border-radius:999px; font-weight:600; color:var(--muted); font-size:13px}
+
+  .big-input{margin-top:18px; display:flex; gap:12px; align-items:center}
+  input[type="text"]{
+    flex:1; padding:16px 18px; border-radius:10px; font-size:16px; background:transparent; color:inherit;
+    border:1px solid rgba(255,255,255,0.04); outline:none; transition:transform .12s ease, box-shadow .12s ease;
+    box-shadow: inset 0 -8px 30px rgba(0,0,0,0.6);
+  }
+  .btn{background:linear-gradient(90deg,var(--accent),var(--accent2)); padding:12px 14px;border-radius:10px;border:0;color:white;font-weight:700;cursor:pointer}
+  .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px 12px;border-radius:10px;color:var(--muted);cursor:pointer}
+  .hint-btn{background:transparent;border:1px dashed rgba(255,255,255,0.06);padding:10px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+  .rules{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+  .rule-pill{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.02); color:var(--muted); font-size:13px; display:flex; gap:10px; align-items:center; min-width:180px}
+  .rule-pill.pass{background:linear-gradient(90deg, rgba(72,230,168,0.12), rgba(0,0,0,0.04)); color:var(--good)}
+  .rule-pill.fail{background:linear-gradient(90deg, rgba(255,107,107,0.06), rgba(0,0,0,0.02)); color:var(--bad)}
+  .rule-pill.hidden{filter:blur(2px); opacity:0.8; background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02))}
+
+  .footer-right{display:flex; flex-direction:column; gap:12px}
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02)); padding:16px; border-radius:12px; height:100%}
+  .stat{display:flex; justify-content:space-between; margin-bottom:10px}
+  small{color:var(--muted)}
+
+  .history{margin-top:10px; max-height:260px; overflow:auto}
+  .hist-row{display:flex; justify-content:space-between; padding:8px;border-radius:8px; margin-bottom:8px; background:rgba(255,255,255,0.02); font-size:13px}
+  .controls{display:flex; gap:8px; margin-top:12px}
+
+  .shake{animation:shake 450ms cubic-bezier(.36,.07,.19,.97)}
+  @keyframes shake{
+    10%{transform:translateX(-6px)}
+    30%{transform:translateX(6px)}
+    50%{transform:translateX(-3px)}
+    70%{transform:translateX(3px)}
+    100%{transform:translateX(0)}
+  }
+
+  .glitch{
+    position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.06;
+    background-image: linear-gradient(90deg,#fff 0,#000 20%, #fff 40%, transparent 60%);
+    transform-origin:left; filter:blur(4px);
+    animation:glitch 1200ms steps(4) infinite;
+  }
+  @keyframes glitch{ 0%{transform:skewX(0) translateX(0)} 50%{transform:skewX(6deg) translateX(-10px)} 100%{transform:skewX(0) translateX(0)} }
+
+  .confetti-canvas{position:absolute; inset:0; pointer-events:none; z-index:40}
+
+  .drone{
+    position:absolute; right:-60px; top:-30px; width:80px; height:80px; transform:rotate(15deg); opacity:0;
+    transition:all .6s cubic-bezier(.2,.75,.2,1);
+  }
+  .drone.show{right:24px; top:-6px; opacity:1}
+  .drone .body{width:80px;height:36px;border-radius:10px;background:linear-gradient(90deg,#2b2b2b,#444); display:flex;align-items:center;justify-content:center;color:white;font-weight:900}
+  .drone .prop{width:12px;height:12px;border-radius:50%;background:#ddd;margin:6px}
+
+  .hint-box{position:absolute; left:22px; bottom:22px; padding:12px 14px; background:rgba(2,4,10,0.85); border-radius:10px; min-width:240px; border:1px solid rgba(255,255,255,0.03)}
+  .small{font-size:13px;color:var(--muted)}
+  .kbd-swap{font-weight:700;color:var(--accent)}
+
+  .accessibility{display:flex; gap:8px; align-items:center}
+  .toggle{display:inline-flex; width:44px;height:24px;background:#111;border-radius:999px;padding:3px; align-items:center; cursor:pointer}
+  .toggle .dot{width:18px;height:18px;background:#ddd;border-radius:50%; transform:translateX(0); transition:transform .18s}
+  .toggle.on{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .toggle.on .dot{transform:translateX(20px); background:white}
+
+  .timebar{height:8px;background:rgba(255,255,255,0.03); border-radius:999px; overflow:hidden;margin-top:12px}
+  .time-progress{height:100%; width:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); transform-origin:left; transition:width 0.2s linear}
+
+  footer{grid-column:1/-1; display:flex; justify-content:space-between; color:var(--muted); font-size:13px; margin-top:12px}
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr; padding:12px}
+    .sidebar{order:3}
+  }
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Password Ruin game">
+    <header>
+      <div class="logo">
+        <div class="icon">PR</div>
+        <div>
+          <h1>Password Ruin</h1>
+          <div class="meta">Set impossible passwords. Survive the chaos.</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center">
+        <div class="accessibility small">
+          <div>Reduce motion</div>
+          <div id="reduceMotion" class="toggle" title="Reduce motion" tabindex="0" role="switch" aria-checked="false"><div class="dot"></div></div>
+        </div>
+        <div class="meta">v1.0 — Single-file</div>
+      </div>
+    </header>
+
+    <main class="play-area" id="playArea" aria-live="polite">
+      <div class="glitch" id="glitch" style="display:none"></div>
+
+      <div class="level-header">
+        <div>
+          <div class="level-title" id="levelTitle">Level 1 — Friendly Warmup</div>
+          <div class="small" id="levelSub">Visible rules are shown. Hidden rules revealed on fails.</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center">
+          <div class="score-pill">Score: <span id="score">0</span></div>
+          <div class="score-pill">Attempts: <span id="attempts">0</span></div>
+        </div>
+      </div>
+
+      <div class="big-input">
+        <input id="passwordInput" autocomplete="off" inputmode="text" placeholder="Type your masterpiece password…" aria-label="Password input"/>
+        <button id="submitBtn" class="btn">Submit</button>
+        <button id="hintBtn" class="hint-btn" title="Spend points for a hint">Hint (-10)</button>
+      </div>
+
+      <div class="timebar" id="timebar" style="display:none"><div class="time-progress" id="timeProgress"></div></div>
+
+      <div class="rules" id="rulesList" aria-live="polite" aria-atomic="true"></div>
+
+      <div style="margin-top:18px; display:flex; gap:10px; align-items:center">
+        <button id="resetLevel" class="muted-btn">Restart Level</button>
+        <button id="nextLevel" class="muted-btn" disabled>Next Level</button>
+        <div class="small" id="feedback" style="margin-left:8px"></div>
+      </div>
+
+      <div class="drone" id="drone">
+        <div class="body">H4X</div>
+      </div>
+
+      <div id="hintBox" class="hint-box" style="display:none"></div>
+
+      <canvas id="confetti" class="confetti-canvas"></canvas>
+    </main>
+
+    <aside class="sidebar">
+      <div class="footer-right">
+        <div class="stat"><div><small>Level</small><div id="levelNum">1</div></div><div><small>Best</small><div id="best">0</div></div></div>
+        <div style="margin-top:6px">
+          <small>History</small>
+          <div class="history" id="history"></div>
+        </div>
+        <div class="controls">
+          <button id="downloadHistory" class="muted-btn">Export</button>
+          <button id="clearHistory" class="muted-btn">Clear</button>
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <div>Made to frustrate, amuse, and inspire. Accessibility options available.</div>
+      <div>Hints cost points • Hidden rules revealed on fail</div>
+    </footer>
+  </div>
+
+<script>
+/* ------------------------
+  Password Ruin - Single-file
+  Core features implemented:
+  - Rule engine with visible/hidden rules
+  - Hidden rule reveal on failure (1 per fail)
+  - Hints cost points and animate drone
+  - 6 levels, escalating difficulty (time limits, distractions)
+  - Score tracking, attempts, localStorage history
+  - Confetti (canvas)
+  - Accessibility toggle reduce motion
+-------------------------*/
+
+(function(){
+  // --- Utilities ---
+  const $ = (s,id=document)=> (id?document.getElementById(id):document.querySelector(s));
+  const rand = n=>Math.floor(Math.random()*n);
+  const now = ()=> new Date();
+  const save = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
+  const load = k=> {
+    try { return JSON.parse(localStorage.getItem(k)); } catch(e){return null}
+  };
+
+  // --- State ---
+  let state = {
+    level: 1,
+    score: 0,
+    attempts: 0,
+    best: load('pr_best') || 0,
+    history: load('pr_history') || [],
+    prevPasswords: load('pr_prev_pw') || [],
+    reduceMotion: false
+  };
+
+  // --- DOM refs ---
+  const input = document.getElementById('passwordInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const hintBtn = document.getElementById('hintBtn');
+  const nextBtn = document.getElementById('nextLevel');
+  const resetBtn = document.getElementById('resetLevel');
+  const rulesList = document.getElementById('rulesList');
+  const scoreEl = document.getElementById('score');
+  const attemptsEl = document.getElementById('attempts');
+  const levelTitle = document.getElementById('levelTitle');
+  const levelNum = document.getElementById('levelNum');
+  const bestEl = document.getElementById('best');
+  const historyEl = document.getElementById('history');
+  const feedback = document.getElementById('feedback');
+  const drone = document.getElementById('drone');
+  const hintBox = document.getElementById('hintBox');
+  const confettiCanvas = document.getElementById('confetti');
+  const glitch = document.getElementById('glitch');
+  const timebar = document.getElementById('timebar');
+  const timeProgress = document.getElementById('timeProgress');
+  const reduceToggle = document.getElementById('reduceMotion');
+
+  // Confetti setup (simple)
+  const confettiCtx = confettiCanvas.getContext && confettiCanvas.getContext('2d');
+  function resizeCanvas(){ confettiCanvas.width = confettiCanvas.clientWidth; confettiCanvas.height = confettiCanvas.clientHeight; }
+  window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+  function runConfetti(){
+    if(!confettiCtx) return;
+    const W = confettiCanvas.width, H = confettiCanvas.height;
+    // small burst
+    const pieces = Array.from({length:80}, _=>({
+      x: W/2 + (Math.random()-0.5)*200,
+      y: H/2 + (Math.random()-0.5)*60,
+      vx: (Math.random()-0.5)*8,
+      vy: (Math.random()*-6)-2,
+      rot: Math.random()*360,
+      size: 6 + Math.random()*8,
+      color: ['#ff3b6b','#7c5cff','#48e6a8','#ffd166'][Math.floor(Math.random()*4)]
+    }));
+    let t0 = performance.now();
+    function frame(t){
+      const dt = (t - t0)/1000; t0 = t;
+      confettiCtx.clearRect(0,0,W,H);
+      for(let p of pieces){
+        p.vy += 30*dt; p.x += p.vx; p.y += p.vy; p.rot += p.vx*2;
+        confettiCtx.save();
+        confettiCtx.translate(p.x,p.y);
+        confettiCtx.rotate(p.rot*Math.PI/180);
+        confettiCtx.fillStyle = p.color;
+        confettiCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+        confettiCtx.restore();
+      }
+      if(pieces.some(p=>p.y < H+50)){
+        requestAnimationFrame(frame);
+      } else {
+        confettiCtx.clearRect(0,0,W,H);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // --- Game rules engine ---
+  // Each rule: id, visible (bool), description (string), test(password)->{pass,msg?}, hint()->string
+  function altCase(word){ return word.split('').map((c,i)=> i%2? c.toLowerCase(): c.toUpperCase()).join('')}
+  function isLeapYear(y){ return (y%4===0 && (y%100!==0 || y%400===0)); }
+  function prevLeapYear(y){
+    for(let k=y; k>=y-8; k--) if(isLeapYear(k)) return k;
+    return y;
+  }
+  function containsPrimeDigits(minPrime=11, pw=''){
+    // check if contains any prime number >= minPrime as contiguous digits
+    const digits = pw.match(/\d+/g) || [];
+    if(!digits.length) return false;
+    const primes = new Set();
+    // generate primes up to 9999
+    function isPrime(n){if(n<2)return false; for(let i=2;i*i<=n;i++) if(n%i===0) return false; return true}
+    for(let d of digits){
+      for(let len=1; len<=d.length; len++){
+        for(let i=0;i+len<=d.length;i++){
+          const n= +d.slice(i,i+len);
+          if(n>=minPrime && isPrime(n)) return true;
+        }
+      }
+    }
+    return false;
+  }
+  function containsFibo(pw=''){
+    const digits = pw.match(/\d+/g) || [];
+    if(!digits.length) return false;
+    const fib = new Set([0,1]);
+    let a=0,b=1; while(b<1000000){ let t=a+b; fib.add(t); a=b; b=t; }
+    for(let d of digits){
+      for(let len=1; len<=d.length; len++){
+        for(let i=0;i+len<=d.length;i++){
+          if(fib.has(+d.slice(i,i+len))) return true;
+        }
+      }
+    }
+    return false;
+  }
+  function isPangramFragment(pw, minDistinct=15){
+    const letters = new Set((pw.match(/[a-z]/gi)||[]).map(c=>c.toLowerCase()));
+    return letters.size >= minDistinct;
+  }
+
+  // generate a set of emoji for emoji rules
+  const EMOJIS = ['😈','🔥','✨','🎯','💥','🧨','🔐','🕹️'];
+
+  // Levels definition (6 levels)
+  const levels = [
+    // Level 1: warmup (mostly visible)
+    {
+      title: "Warmup — Friendly",
+      base: 100,
+      timeLimit: 0,
+      rules: [
+        { id:'L1-1', visible:true, description:'Length between 10 and 20', test: pw=> ({pass: pw.length>=10 && pw.length<=20}) , hint: ()=> 'Try a length around 12–16 chars.'},
+        { id:'L1-2', visible:true, description:'At least 2 uppercase letters', test: pw=> ({pass: (pw.match(/[A-Z]/g)||[]).length >=2}), hint: ()=> 'Use 2+ CAPITAL letters.'},
+        { id:'L1-3', visible:true, description:'At least 3 lowercase letters', test: pw=> ({pass: (pw.match(/[a-z]/g)||[]).length >=3}), hint: ()=> 'a,b,c are your friends.'},
+        { id:'L1-H1', visible:false, description: `Must include today's weekday in alternating case (e.g. ${altCase(new Date().toLocaleDateString('en-US',{weekday:'long'}))})`, test: pw=>{
+            const wd = new Date().toLocaleDateString('en-US',{weekday:'long'});
+            return {pass: pw.includes(altCase(wd)), message:`Include ${altCase(wd)}`};
+          }, hint: ()=> 'Include the weekday in alternating case, e.g., MoNdAy.'}
+      ]
+    },
+
+    // Level 2: date & numbers
+    {
+      title: "Date Crunch",
+      base: 190,
+      timeLimit: 0,
+      rules: [
+        { id:'L2-1', visible:true, description:'Length ≥ 12', test: pw=> ({pass: pw.length>=12}), hint: ()=> 'Make it longer.'},
+        { id:'L2-2', visible:true, description:'Include current year OR previous leap year', test: pw=>{
+            const y = new Date().getFullYear();
+            const py = prevLeapYear(y);
+            return {pass: pw.includes(String(y)) || pw.includes(String(py))};
+          }, hint: ()=> 'Try adding the year (or a recent leap year).'},
+        { id:'L2-H1', visible:false, description:'Must include a prime number (≥11)', test: pw=> ({pass: containsPrimeDigits(11,pw)}), hint: ()=> 'Try embedding a prime like 11,13,17,19,23...'}
+      ]
+    },
+
+    // Level 3: emoji + hex color + pangram fragment
+    {
+      title: "Colorful Hex & Letters",
+      base: 340,
+      timeLimit: 0,
+      rules: [
+        { id:'L3-1', visible:true, description:'Contain at least 1 emoji (try 😈🔥✨🎯)', test: pw=> ({pass: EMOJIS.some(e=>pw.includes(e))}), hint: ()=> 'Copy a visible emoji into the password.'},
+        { id:'L3-2', visible:true, description:'Contain a hex color like #1a2b3c', test: pw=> ({pass: /#[0-9a-fA-F]{6}/.test(pw)}), hint: ()=> 'Add # followed by 6 hex digits, e.g., #00ff88.'},
+        { id:'L3-H1', visible:false, description:'At least 15 distinct letters (pangram fragment)', test: pw=> ({pass: isPangramFragment(pw,15)}), hint: ()=> 'Use many distinct letters (15+).'}
+      ]
+    },
+
+    // Level 4: pattern rules, no repeats, fibonacci
+    {
+      title: "Fractal Patterns",
+      base: 520,
+      timeLimit: 25,
+      rules: [
+        { id:'L4-1', visible:true, description:'No immediate repeating sequence (no "abcabc")', test: pw=>{
+            for(let len=2; len<=Math.floor(pw.length/2); len++){
+              for(let i=0;i+2*len<=pw.length;i++){
+                if(pw.slice(i,i+len) === pw.slice(i+len,i+2*len)) return {pass:false, message:'No repeated sequences'};
+              }
+            }
+            return {pass:true};
+          }, hint: ()=> 'Avoid repeating the same substring twice in a row.'},
+        { id:'L4-2', visible:true, description:'Contain a Fibonacci number (e.g., 144)', test: pw=> ({pass: containsFibo(pw)}), hint: ()=> 'Try adding 13,21,34,55,89,144.'},
+        { id:'L4-H1', visible:false, description:'Must contain both "[" and "]" with digits inside (like [123])', test: pw=> ({pass: /\[\d+\]/.test(pw)}), hint: ()=> 'Try including a bracketed number like [123].'}
+      ]
+    },
+
+    // Level 5: keyboard row, country code, previous-password ban, distractions
+    {
+      title: "Keyboard Mayhem",
+      base: 760,
+      timeLimit: 18,
+      rules: [
+        { id:'L5-1', visible:true, description:'Include at least one char from the top keyboard row (`qwertyuiop`)', test: pw=> ({pass: /[qwertyuiopQWERTYUIOP]/.test(pw)}), hint: ()=> 'Try characters like q,w,e,r,t,y.'},
+        { id:'L5-2', visible:true, description:'Include a two-letter country code (e.g., US, GB, PK)', test: pw=> ({pass: /[A-Za-z]{2}/.test(pw) && (pw.match(/[A-Za-z]{2}/)||[]).some(s=> s.toUpperCase() === s)}), hint: ()=> 'Add a 2-letter code like US or GB.'},
+        { id:'L5-H1', visible:false, description:'Must NOT include any previous password used in this session', test: (pw,ctx)=> ({pass: !ctx.prevPasswords.some(p=> p && pw.includes(p))}), hint: ()=> 'Don’t reuse fragments from earlier passwords.'}
+      ]
+    },
+
+    // Level 6: hardcore — regex riddle, emoji set, time pressure, keyboard swap simulation
+    {
+      title: "Rage Mode — Hardcore",
+      base: 1200,
+      timeLimit: 14,
+      rules: [
+        { id:'L6-1', visible:true, description:'Match this riddle-regex: three letters, two digits, an emoji, and a hex color (order flexible)', test: (pw)=>{
+            // simple-ish check: contains three letters, two digits, an emoji in set, and a #xxxxxx
+            const letters = (pw.match(/[A-Za-z]/g)||[]).length >=3;
+            const digits = (pw.match(/\d/g)||[]).length >=2;
+            const emoji = EMOJIS.some(e=>pw.includes(e));
+            const hex = /#[0-9a-fA-F]{6}/.test(pw);
+            return {pass: letters && digits && emoji && hex, message:'Requires 3 letters, 2 digits, emoji, and a hex color.'};
+          }, hint: ()=> 'Combine letters, numbers, an emoji, and a #rrggbb.'},
+        { id:'L6-2', visible:true, description:'Length ≥ 16', test: pw=> ({pass: pw.length>=16}), hint: ()=> 'Go long — 16 or more chars.'},
+        { id:'L6-H1', visible:false, description:'Secret: includes the player name fragment "player" (try if stuck)', test: pw=> ({pass: pw.toLowerCase().includes('player')}), hint: ()=> 'Easter egg: try typing "player" somewhere.'}
+      ]
+    }
+  ];
+
+  // --- Level control and engine ---
+  let currentLevelObj = null;
+  let revealedHidden = new Set();
+  let timer = null;
+  let timeLeft = 0;
+  function loadLevel(n){
+    state.level = n;
+    currentLevelObj = levels[n-1];
+    revealedHidden = new Set();
+    state.attempts = 0;
+    updateUI();
+    buildRulesUI();
+    input.value = '';
+    nextBtn.disabled = true;
+    feedback.textContent = '';
+    // time limit
+    if(currentLevelObj.timeLimit && currentLevelObj.timeLimit>0){
+      timeLeft = currentLevelObj.timeLimit;
+      timebar.style.display = '';
+      updateTimeProgress();
+      if(timer) clearInterval(timer);
+      timer = setInterval(()=>{
+        timeLeft -= 0.2;
+        if(timeLeft <= 0){
+          clearInterval(timer);
+          timeLeft = 0;
+          onFail("Time ran out!");
+          // reveal one hidden rule
+          revealOneHidden();
+          input.value = '';
+        }
+        updateTimeProgress();
+      },200);
+    } else {
+      timebar.style.display = 'none';
+      if(timer) clearInterval(timer);
+    }
+    // possible distractions on high levels
+    if(n>=4) startDistractions();
+    else stopDistractions();
+  }
+
+  function updateTimeProgress(){
+    if(!currentLevelObj || !currentLevelObj.timeLimit) return;
+    const pct = Math.max(0, (timeLeft/currentLevelObj.timeLimit)*100);
+    timeProgress.style.width = pct + '%';
+    timeProgress.style.background = pct < 25 ? 'linear-gradient(90deg,#ff6b6b,#ffb86b)' : 'linear-gradient(90deg,var(--accent),var(--accent2))';
+  }
+
+  function buildRulesUI(){
+    rulesList.innerHTML = '';
+    for(let r of currentLevelObj.rules){
+      const el = document.createElement('div');
+      el.className = 'rule-pill ' + (r.visible? '': 'hidden');
+      el.id = 'rule-'+r.id;
+      el.innerHTML = `<div style="font-weight:700">${r.description}</div>`;
+      rulesList.appendChild(el);
+    }
+    applyRuleStates('');
+  }
+
+  function applyRuleStates(pw){
+    for(let r of currentLevelObj.rules){
+      const el = document.getElementById('rule-'+r.id);
+      if(!el) continue;
+      const result = r.test(pw, {prevPasswords: state.prevPasswords});
+      if(!r.visible && !revealedHidden.has(r.id)){
+        el.className = 'rule-pill hidden';
+        el.textContent = 'Hidden rule — revealed on fail';
+      } else {
+        el.className = 'rule-pill ' + (result.pass? 'pass':'fail');
+        el.innerHTML = `<div style="font-weight:700">${r.description}</div><div class="small">${result.pass? 'OK':'Not satisfied'}</div>`;
+      }
+    }
+  }
+
+  function runTests(pw){
+    const failed = [];
+    const passed = [];
+    for(let r of currentLevelObj.rules){
+      // if hidden and not revealed, still tested but won't show until revealed
+      const result = r.test(pw, {prevPasswords: state.prevPasswords});
+      if(result.pass) passed.push({r, result});
+      else failed.push({r, result});
+    }
+    return {failed, passed};
+  }
+
+  // Reveal one hidden rule (first unrevealed)
+  function revealOneHidden(){
+    for(let r of currentLevelObj.rules){
+      if(!r.visible && !revealedHidden.has(r.id)){
+        revealedHidden.add(r.id);
+        const el = document.getElementById('rule-'+r.id);
+        if(el){
+          // animate reveal
+          el.className = 'rule-pill fail';
+          el.innerHTML = `<div style="font-weight:700">${r.description}</div><div class="small">Revealed</div>`;
+        }
+        break;
+      }
+    }
+  }
+
+  // Hint action: reveals a hint for a random rule (visible or revealed hidden)
+  function giveHint(){
+    const hintPay = 10;
+    if(state.score < hintPay){
+      feedback.textContent = 'Not enough points for a hint.';
+      return;
+    }
+    // choose candidate rules: visible OR revealed
+    const candidates = currentLevelObj.rules.filter(r=> r.visible || revealedHidden.has(r.id));
+    const r = candidates[rand(candidates.length)];
+    // show drone & hintbox
+    state.score -= hintPay;
+    saveScore();
+    drone.classList.add('show');
+    hintBox.style.display = '';
+    hintBox.textContent = r.hint ? r.hint() : 'No hint.';
+    setTimeout(()=>{ drone.classList.remove('show'); }, 2400);
+    setTimeout(()=>{ hintBox.style.display = 'none'; }, 3600);
+    updateUI();
+  }
+
+  // On successful level completion
+  function onWin(pw){
+    // compute score
+    const t = currentLevelObj.base || 100;
+    const timeBonus = currentLevelObj.timeLimit ? Math.floor(timeLeft*5) : 0;
+    const attemptPenalty = state.attempts * 8;
+    const lengthBonus = Math.max(0, pw.length - 12) * 2;
+    const gained = Math.max(10, t + timeBonus + lengthBonus - attemptPenalty);
+    state.score += gained;
+    // record best, history
+    state.prevPasswords.push(pw);
+    state.history.unshift({level: state.level, score:gained, total: state.score, pwPreview: pw.slice(0,12)+'...' , date: new Date().toLocaleString()});
+    if(state.history.length>30) state.history.pop();
+    saveAll();
+    updateUI();
+    // show confetti & feedback
+    runConfetti();
+    feedback.textContent = `Success! +${gained} pts`;
+    nextBtn.disabled = false;
+    // prevent immediate double-submit
+    submitBtn.disabled = true;
+    setTimeout(()=> submitBtn.disabled = false, 800);
+  }
+
+  function onFail(reason){
+    // fail animation & reveal one hidden rule
+    state.attempts += 1;
+    state.score = Math.max(0, state.score - 3); // tiny penalty
+    saveAll();
+    updateUI();
+    // shake & glitch if not reduced motion
+    if(!state.reduceMotion){
+      input.classList.add('shake');
+      setTimeout(()=> input.classList.remove('shake'),420);
+      if(state.level>=4){
+        glitch.style.display = '';
+        setTimeout(()=> glitch.style.display = 'none', 700);
+      }
+    }
+    // reveal a hidden rule
+    revealOneHidden();
+    feedback.textContent = reason || 'Attempt failed — a hidden rule was revealed.';
+  }
+
+  // Validate submission
+  function submitPassword(){
+    const pw = input.value || '';
+    const {failed, passed} = runTests(pw);
+    state.attempts += 1;
+    // If all pass => win
+    if(failed.length === 0){
+      onWin(pw);
+      buildRulesUI();
+      return;
+    }
+    // else fail
+    onFail(failed[0].result && failed[0].result.message ? failed[0].result.message : 'Failed rule');
+    // show updated rule states using current pw
+    applyRuleStates(pw);
+  }
+
+  // --- Distractions & keyboard swap simulator ---
+  let keyboardSwapActive = false;
+  function startDistractions(){
+    // level >=4: intermittent keyboard-swap simulation (visually)
+    if(keyboardSwapActive) return;
+    keyboardSwapActive = true;
+    // every 6-10s, simulate a keyboard swap for 3s
+    function doSwap(){
+      if(!keyboardSwapActive) return;
+      // visual: change placeholder
+      const old = input.placeholder;
+      input.placeholder = old.split('').reverse().join('');
+      input.classList.add('kbd-swap');
+      setTimeout(()=>{
+        input.placeholder = old;
+        input.classList.remove('kbd-swap');
+      }, 2600);
+      setTimeout(doSwap, 6000 + rand(4000));
+    }
+    doSwap();
+  }
+  function stopDistractions(){ keyboardSwapActive = false; input.classList.remove('kbd-swap'); }
+
+  // --- Save / load ---
+  function saveAll(){
+    save('pr_best', Math.max(state.best || 0, state.score));
+    save('pr_history', state.history);
+    save('pr_prev_pw', state.prevPasswords);
+    state.best = Math.max(state.best || 0, state.score);
+  }
+  function saveScore(){ saveAll(); }
+
+  // --- UI update ---
+  function updateUI(){
+    scoreEl.textContent = state.score;
+    attemptsEl.textContent = state.attempts;
+    levelNum.textContent = state.level;
+    levelTitle.textContent = `Level ${state.level} — ${currentLevelObj? currentLevelObj.title : ''}`;
+    bestEl.textContent = state.best || 0;
+    // history
+    historyEl.innerHTML = '';
+    for(let h of state.history){
+      const r = document.createElement('div'); r.className='hist-row';
+      r.innerHTML = `<div style="font-weight:700">${h.level}</div><div class="small">${h.pwPreview}</div><div style="text-align:right"><div style="font-weight:700">${h.score}</div><div class="small">${h.date}</div></div>`;
+      historyEl.appendChild(r);
+    }
+  }
+
+  // --- Event handlers ---
+  submitBtn.addEventListener('click', ()=> {
+    // if next enabled and click -> go to next
+    submitPassword();
+  });
+  input.addEventListener('keydown', (e)=> {
+    if(e.key === 'Enter') submitPassword();
+    // live preview of rule states
+    setTimeout(()=> applyRuleStates(input.value), 6);
+  });
+
+  hintBtn.addEventListener('click', ()=> giveHint());
+  nextBtn.addEventListener('click', ()=>{
+    if(state.level < levels.length){
+      loadLevel(state.level + 1);
+      updateUI();
+    } else {
+      feedback.textContent = 'All levels done — congratulations, you survived the ruin!';
+    }
+  });
+  resetBtn.addEventListener('click', ()=> {
+    loadLevel(state.level);
+    feedback.textContent = 'Level restarted.';
+  });
+
+  // accessibility toggle
+  reduceToggle.addEventListener('click', ()=> {
+    state.reduceMotion = !state.reduceMotion;
+    reduceToggle.classList.toggle('on', state.reduceMotion);
+    reduceToggle.setAttribute('aria-checked', state.reduceMotion? 'true':'false');
+    // reduce animation elements
+    if(state.reduceMotion){
+      glitch.style.display = 'none';
+    }
+    save('pr_reduceMotion', state.reduceMotion);
+  });
+
+  // history export / clear
+  document.getElementById('downloadHistory').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state.history, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'password-ruin-history.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('clearHistory').addEventListener('click', ()=>{
+    state.history = []; saveAll(); updateUI();
+  });
+
+  // initial load
+  function init(){
+    // load reduce motion pref
+    const rm = load('pr_reduceMotion'); if(typeof rm === 'boolean'){ state.reduceMotion = rm; reduceToggle.classList.toggle('on', rm); }
+    // start at level 1
+    loadLevel(1);
+    updateUI();
+    buildRulesUI();
+  }
+  init();
+
+  // Export some functions to global (for dev/test)
+  window.PR = {state, loadLevel, submitPassword, giveHint, levels};
+})();
+</script>
+</body>
+</html>
