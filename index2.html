@@ -1,385 +1,175 @@
-<!-- <!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Password Memory Challenge — Very Hard Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Super Simple Password Game</title>
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#94a3b8;--good:#10b981}
-    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    body{margin:0;background:linear-gradient(180deg,#061021 0%,#071028 100%);color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh}
-    .card{width:960px;max-width:95%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:22px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-    h1{margin:.2rem 0 .6rem;font-size:20px}
-    .row{display:flex;gap:16px}
-    .col{flex:1}
-    label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
-    input[type=text],input[type=password],select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
-    button{background:var(--accent);border:0;padding:10px 14px;border-radius:8px;color:white;cursor:pointer}
-    .muted{color:var(--muted);font-size:13px}
-    .center{display:flex;align-items:center;justify-content:center}
-    .meter{height:8px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden}
-    .meter > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#f97316,#f43f5e)}
-    .actions{display:flex;gap:10px;margin-top:10px}
-    .panel{background:rgba(255,255,255,0.02);padding:12px;border-radius:8px}
-    .big{font-size:30px;font-weight:700}
-    .hint{background:#091223;padding:8px;border-radius:8px}
-    .board{display:flex;gap:12px;margin-top:12px}
-    .tile{background:#061424;padding:10px;border-radius:6px;min-width:60px;text-align:center}
-    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    :root {
+      --bg: #0f172a;          /* slate-900 */
+      --card: #111827;        /* gray-900 */
+      --muted: #94a3b8;       /* slate-400 */
+      --text: #e5e7eb;        /* gray-200 */
+      --good: #22c55e;        /* green-500 */
+      --bad: #ef4444;         /* red-500 */
+      --accent: #60a5fa;      /* blue-400 */
+      --bar: #1f2937;         /* gray-800 */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100svh;
+      display: grid; place-items: center;
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1022 50%, #030712 100%), var(--bg);
+      color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    .card {
+      width: min(560px, 92vw);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 22px 20px 18px; backdrop-filter: blur(6px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    h1 { margin: 0 0 6px; font-size: 1.4rem; letter-spacing: 0.2px; }
+    p { margin: 0 0 16px; color: var(--muted); }
+
+    .input-row { position: relative; margin: 10px 0 14px; }
+    input[type="password"], input[type="text"] {
+      width: 100%; padding: 14px 44px 14px 14px; font-size: 1rem;
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+      background: #0b1220; color: var(--text); outline: none;
+      transition: border-color .2s ease;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(96,165,250,0.15); }
+    .toggle {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit;
+    }
+
+    .bar {
+      height: 10px; background: var(--bar); border-radius: 999px; overflow: hidden; margin: 6px 0 2px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #f97316, #f59e0b, #22c55e); transition: width .25s ease; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+    ul.rules { list-style: none; padding: 0; margin: 10px 0 8px; display: grid; gap: 8px; }
+    .rule { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; font-size: 0.96rem; }
+    .dot { width: 14px; height: 14px; border-radius: 999px; display: inline-block; background: var(--bad); box-shadow: 0 0 0 2px rgba(239,68,68,0.2); }
+    .rule.ok .dot { background: var(--good); box-shadow: 0 0 0 2px rgba(34,197,94,0.2); }
+
+    .actions { display: flex; gap: 10px; margin-top: 14px; }
+    button.primary {
+      flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, #2e3a5c, #1a2440);
+      color: white; cursor: pointer; font-weight: 600; letter-spacing: .2px; transition: transform .05s ease, opacity .2s ease;
+    }
+    button.primary:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary:active { transform: translateY(1px); }
+
+    .message { margin-top: 10px; font-weight: 600; text-align: center; }
+    .hidden { display: none; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .footer { margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Password Memory Challenge — Very Hard Mode</h1>
-    <div class="row">
-      <div class="col panel">
-        <label>Step A — Create a master password (you'll need to remember it)</label>
-        <input id="passwordInput" type="password" placeholder="Create a strong password" autocomplete="new-password" />
-        <div style="margin-top:8px" class="row">
-          <div class="col">
-            <label class="muted">Strength</label>
-            <div class="meter" aria-hidden><i id="strengthBar"></i></div>
-          </div>
-          <div style="width:140px;flex:0 0 140px" class="col">
-            <label class="muted">Visibility</label>
-            <select id="revealTime"><option value="3">Show 3s</option><option value="5" selected>Show 5s</option><option value="8">Show 8s</option></select>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="setBtn">Set Password & Start Level 1</button>
-          <button id="clearBtn" style="background:#334155">Reset</button>
-        </div>
-        <p class="muted">Notes: This is a local browser game. Passwords are stored only as a hash in localStorage for the game mechanics. Do not use real credentials.</p>
-      </div>
-      <div class="col panel" id="gamePanel">
-        <label>Game Status</label>
-        <div id="status">Idle — set a password to begin.</div>
-        <div style="margin-top:10px" id="controls"></div>
-        <div style="margin-top:12px">Score: <span id="score">0</span> — Level: <span id="level">0</span></div>
-        <div id="message" style="margin-top:8px" class="muted"></div>
-      </div>
+    <h1>🔐 The Password Game</h1>
+    <p>Create a password that satisfies all rules to unlock the button.</p>
+
+    <div class="input-row">
+      <input id="pwd" type="password" placeholder="Type your secret password..." autocomplete="new-password" />
+      <button id="toggle" class="toggle" aria-label="Show/Hide password">👁️</button>
+      <div class="hint">Pro tip: use a phrase with symbols, like <em>Sun!Day#2025</em></div>
     </div>
 
-    <div style="margin-top:14px" class="panel">
-      <label>How the challenge works (very hard)</label>
-      <ol class="muted">
-        <li>Set a complex password (min length 8). Strength reduces penalties.</li>
-        <li>Level 1: Memorize the exact password (shown for X seconds) then type it back.</li>
-        <li>Level 2: Password will be scrambled and you must pick the correct order from tiles.</li>
-        <li>Level 3: Transformation test — e.g. Caesar shift by +1 on characters; input transformed password.</li>
-        <li>Level 4+: Combinations, timed recall, partial reveals, and decoy prompts (very hard).</li>
-      </ol>
+    <div class="bar" aria-hidden="true"><div id="strength"></div></div>
+    <div class="bar-label"><span>Strength</span><span id="scoreText">0%</span></div>
+
+    <ul class="rules" id="rules">
+      <li class="rule" data-check="len"><span class="dot"></span><span>At least 8 characters</span></li>
+      <li class="rule" data-check="upper"><span class="dot"></span><span>Contains an uppercase letter (A–Z)</span></li>
+      <li class="rule" data-check="lower"><span class="dot"></span><span>Contains a lowercase letter (a–z)</span></li>
+      <li class="rule" data-check="num"><span class="dot"></span><span>Contains a number (0–9)</span></li>
+      <li class="rule" data-check="sym"><span class="dot"></span><span>Contains a symbol (!@#$%^&*...)</span></li>
+      <li class="rule" data-check="space"><span class="dot"></span><span>No spaces</span></li>
+    </ul>
+
+    <div class="actions">
+      <button id="play" class="primary" disabled>✅ Unlock</button>
+      <button id="copy" class="primary" disabled>📋 Copy</button>
     </div>
-    <footer>Created for you — adapt and extend. Want React, mobile, or server-backed leaderboard? Tell me and I'll export.</footer>
+
+    <div id="msg" class="message hidden">🎉 Nice! You beat the rules. (Button unlocked)</div>
+    <div class="footer">Single-file demo • HTML + CSS + tiny JS</div>
   </div>
 
-<script>
-// Helper: entropy/strength estimation (simple)
-function passwordStrength(pw){
-  let score=0;
-  if(pw.length>=8) score+=1;
-  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score+=1;
-  if(/\d/.test(pw)) score+=1;
-  if(/[^A-Za-z0-9]/.test(pw)) score+=1;
-  // extra points for length
-  if(pw.length>=12) score+=1;
-  return Math.min(5,score);
-}
+  <script>
+    const el = (id) => document.getElementById(id);
+    const pwd = el('pwd');
+    const strength = el('strength');
+    const scoreText = el('scoreText');
+    const playBtn = el('play');
+    const copyBtn = el('copy');
+    const msg = el('msg');
+    const toggle = el('toggle');
 
-// show strength
-const pwInput=document.getElementById('passwordInput');
-const strengthBar=document.getElementById('strengthBar');
-pwInput.addEventListener('input',()=>{
-  const s=passwordStrength(pwInput.value);
-  const pct=(s/5)*100;
-  strengthBar.style.width=pct+'%';
-});
+    const checks = {
+      len: (s) => s.length >= 8,
+      upper: (s) => /[A-Z]/.test(s),
+      lower: (s) => /[a-z]/.test(s),
+      num: (s) => /\d/.test(s),
+      sym: (s) => /[^\w\s]/.test(s), // any non-word, non-space
+      space: (s) => !/\s/.test(s),
+    };
 
-// crypto hash
-async function sha256(str){
-  const enc=new TextEncoder();
-  const data=enc.encode(str);
-  const hash=await crypto.subtle.digest('SHA-256',data);
-  const arr=Array.from(new Uint8Array(hash));
-  return arr.map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+    const rulesEl = document.querySelectorAll('.rule');
 
-// Game state
-let state={level:0,score:0,secretHash:null,secret:null,showSeconds:5};
-const status=document.getElementById('status');
-const controls=document.getElementById('controls');
-const scoreEl=document.getElementById('score');
-const levelEl=document.getElementById('level');
-const message=document.getElementById('message');
+    function evaluate() {
+      const val = pwd.value || '';
+      let passed = 0; const total = rulesEl.length;
 
-function updateUI(){
-  scoreEl.textContent=state.score;
-  levelEl.textContent=state.level;
-}
+      rulesEl.forEach(li => {
+        const key = li.dataset.check;
+        const ok = checks[key](val);
+        li.classList.toggle('ok', ok);
+        if (ok) passed++;
+      });
 
-// Setup
-const setBtn=document.getElementById('setBtn');
-const clearBtn=document.getElementById('clearBtn');
-const revealTime=document.getElementById('revealTime');
-revealTime.addEventListener('change',()=>{state.showSeconds=parseInt(revealTime.value)});
+      const pct = Math.round((passed / total) * 100);
+      strength.style.width = pct + '%';
+      scoreText.textContent = pct + '%';
 
-setBtn.addEventListener('click',async()=>{
-  const pw=pwInput.value.trim();
-  if(pw.length<8){alert('Password must be at least 8 characters');return}
-  state.secret=pw;
-  state.secretHash=await sha256(pw);
-  localStorage.setItem('pwgame_hash',state.secretHash);
-  localStorage.setItem('pwgame_strength',passwordStrength(pw));
-  state.level=1; state.score=0; updateUI();
-  message.textContent='Password set. Get ready for Level 1';
-  startLevel1();
-});
-
-clearBtn.addEventListener('click',()=>{localStorage.removeItem('pwgame_hash');localStorage.removeItem('leaderboard');state={level:0,score:0,secretHash:null,secret:null};updateUI();status.textContent='Cleared.';controls.innerHTML='';message.textContent='Cleared data.'});
-
-// Level 1: show password for N seconds
-async function startLevel1(){
-  controls.innerHTML='';
-  status.textContent='Level 1 — Memorize the password';
-  const showFor=state.showSeconds||5;
-  const box=document.createElement('div');box.className='center';box.innerHTML=`<div style="padding:20px;border-radius:8px;background:#07182a;font-weight:700">${escapeHtml(state.secret)}</div><div class=muted style=margin-top:8px>Shown for ${showFor} seconds</div>`;
-  controls.appendChild(box);
-  await wait(showFor*1000);
-  // hide and prompt
-  controls.innerHTML='';
-  askExactPassword();
-}
-
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
-function wait(ms){return new Promise(r=>setTimeout(r,ms));}
-
-async function askExactPassword(){
-  status.textContent='Level 1 — Type the exact password';
-  const div=document.createElement('div');
-  div.innerHTML=`<label class=muted>Enter password:</label><input id='attempt' type='password' autocomplete='off' /><div class=actions style='margin-top:8px'><button id='submit'>Submit</button><button id='hint' style='background:#334155'>Use Hint (-5 pts)</button></div>`;
-  controls.appendChild(div);
-  document.getElementById('submit').addEventListener('click',async()=>{
-    const val=document.getElementById('attempt').value;
-    const h=await sha256(val);
-    if(h===state.secretHash){state.score+=20;message.textContent='Correct! +20 pts';state.level=2;updateUI();startLevel2()}else{state.score-=8;message.textContent='Wrong — penalty -8';updateUI();}}
-  );
-  document.getElementById('hint').addEventListener('click',()=>{state.score-=5;message.textContent='Hint: first char = '+state.secret[0]+' (cost 5pts)';updateUI();});
-}
-
-// Level 2: scramble tiles and user must put correct order
-function startLevel2(){
-  controls.innerHTML='';status.textContent='Level 2 — Reorder the scrambled tiles';
-  const pw=state.secret;
-  // split into characters or chunks
-  const chunks=smartChunk(pw);
-  const shuffled=shuffle([...chunks]);
-  const board=document.createElement('div');board.className='board';
-  shuffled.forEach((c,i)=>{const t=document.createElement('div');t.className='tile';t.draggable=true;t.textContent=c;t.dataset.val=c;board.appendChild(t);});
-  controls.appendChild(board);
-  const submit=document.createElement('button');submit.textContent='Submit Order';submit.style.marginTop='10px';controls.appendChild(submit);
-  // drag/drop simple
-  let dragged=null;
-  controls.querySelectorAll('.tile').forEach(t=>{
-    t.addEventListener('dragstart',e=>{dragged=t});
-    t.addEventListener('dragover',e=>{e.preventDefault()});
-    t.addEventListener('drop',e=>{e.preventDefault(); if(dragged && dragged!==t){const a=dragged.textContent;dragged.textContent=t.textContent;t.textContent=a}});
-  });
-  submit.addEventListener('click',()=>{
-    const got=Array.from(controls.querySelectorAll('.tile')).map(x=>x.textContent).join('');
-    if(got===pw){state.score+=40;message.textContent='Perfect reorder! +40 pts';state.level=3;updateUI();startLevel3()}else{state.score-=12;message.textContent='Incorrect order — -12';updateUI();}
-  });
-}
-
-function smartChunk(s){
-  // try to chunk by meaningful groups: letters sequences or single chars when mixed
-  if(s.length<=6) return s.split('');
-  // split into 3-5 chunks
-  const target=Math.max(3,Math.min(5,Math.floor(s.length/4)));
-  const size=Math.ceil(s.length/target);
-  const out=[]; for(let i=0;i<s.length;i+=size) out.push(s.slice(i,i+size)); return out;
-}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-
-// Level 3: transformation - Caesar shift by +1 across all ASCII printable (32-126)
-function startLevel3(){
-  controls.innerHTML='';status.textContent='Level 3 — Transformation test';
-  const shifted=caesarShift(state.secret,1);
-  const div=document.createElement('div');div.innerHTML=`<div class=muted>Transform rule: each character is shifted by +1 (e.g. a -> b, 9 -> :) — you must enter the transformed password.</div><label class=muted style='margin-top:8px'>Enter transformed password:</label><input id='tatt' type='text' autocomplete='off' /><div class=actions style='margin-top:8px'><button id='tsub'>Submit</button><button id='autohint' style='background:#334155'>Reveal 1 char (-10)</button></div>`;
-  controls.appendChild(div);
-  document.getElementById('tsub').addEventListener('click',async()=>{const v=document.getElementById('tatt').value; if(v===shifted){state.score+=60;message.textContent='Transformation correct! +60';state.level=4;updateUI();startLevel4()}else{state.score-=18;message.textContent='Wrong transformation -18';updateUI();}});
-  document.getElementById('autohint').addEventListener('click',()=>{state.score-=10;message.textContent='Hint: transformed first char = '+shifted[0]+' (-10)';updateUI();});
-}
-function caesarShift(s,delta){
-  const out=[];
-  for(let i=0;i<s.length;i++){const c=s.charCodeAt(i); if(c>=32 && c<=126){let nc= (c-32+delta)%95 +32; out.push(String.fromCharCode(nc));} else out.push(s[i]);}
-  return out.join('');
-}
-
-// Level 4: Mix memory + speed + decoys
-function startLevel4(){
-  controls.innerHTML='';status.textContent='Level 4 — Speed recall with decoys';
-  const timeLimit=Math.max(6,Math.floor(8 - passwordStrength(state.secret)/2));
-  const decoys=generateDecoys(state.secret,5);
-  // show prompt with 6 options (1 correct)
-  const list=shuffle([state.secret,...decoys]);
-  const board=document.createElement('div');board.className='board';
-  list.forEach(item=>{const t=document.createElement('div');t.className='tile';t.textContent=item; t.style.cursor='pointer'; board.appendChild(t);});
-  controls.appendChild(board);
-  const timer=document.createElement('div');timer.className='muted center';timer.style.marginTop='8px';controls.appendChild(timer);
-  let remaining=timeLimit; timer.textContent=`Time: ${remaining}s`;
-  const interval=setInterval(()=>{remaining--; timer.textContent=`Time: ${remaining}s`; if(remaining<=0){clearInterval(interval);state.score-=25;message.textContent='Time up! -25';updateUI();}},1000);
-  // click handling
-  board.addEventListener('click',e=>{if(!e.target.classList.contains('tile')) return; clearInterval(interval); if(e.target.textContent===state.secret){state.score+=100;message.textContent='You crushed it! +100';state.level=5;updateUI();finishGame(true)}else{state.score-=25;message.textContent='Decoy clicked -25';updateUI(); finishGame(false)}});
-}
-
-function generateDecoys(s,count){
-  const decoys=[];
-  for(let i=0;i<count;i++){let d=s.split('').map(ch=>{if(Math.random()<0.2) return randomSwap(ch); if(Math.random()<0.1) return flipCase(ch); return ch}).join(''); if(Math.random()<0.2) d=caesarShift(d,1); if(!decoys.includes(d) && d!==s) decoys.push(d)}
-  return decoys.slice(0,count);
-}
-function randomSwap(c){
-  // replace with adjacent ascii
-  const n=c.charCodeAt(0);
-  return String.fromCharCode(((n-32+ (Math.random()<0.5?-1:1))%95)+32);
-}
-function flipCase(ch){if(/[a-z]/.test(ch))return ch.toUpperCase(); if(/[A-Z]/.test(ch)) return ch.toLowerCase(); return ch}
-
-function finishGame(won){status.textContent='Finished'; controls.innerHTML=''; const end=document.createElement('div'); end.innerHTML=`<div class=big>${won? 'Victory!':'Game Over'}</div><div class=muted style='margin-top:8px'>Final score: ${state.score}</div><div class=actions style='margin-top:12px'><button id='again'>Play Again (same password)</button><button id='new' style='background:#334155'>New Password</button></div>`; controls.appendChild(end);
-  document.getElementById('again').addEventListener('click',()=>{state.level=1; updateUI(); startLevel1()});
-  document.getElementById('new').addEventListener('click',()=>{state={level:0,score:0,secret:null,secretHash:null};updateUI();controls.innerHTML='';status.textContent='Set a new password to start.'});
-}
-
-// Leaderboard support
-function saveLeaderboard(name,score){
-  const raw=localStorage.getItem('leaderboard');
-  const lb=raw?JSON.parse(raw):[]; lb.push({name,score,at:Date.now()}); lb.sort((a,b)=>b.score-a.score); localStorage.setItem('leaderboard',JSON.stringify(lb.slice(0,10)));
-}
-
-// small utilities
-function flipFirst(s){return s.length? (s[0]===s[0].toUpperCase()? s[0].toLowerCase()+s.slice(1) : s[0].toUpperCase()+s.slice(1)) : s}
-
-// allow keyboard testing: press T to show instructions
-window.addEventListener('keydown',(e)=>{if(e.key.toLowerCase()==='t'){alert('This is a very-hard memory challenge. You set the password and must recall across different transformation/ordering/time tests.')}});
-
-// initial load: load saved hash (we don't store raw password)
-(function(){const h=localStorage.getItem('pwgame_hash'); if(h){state.secretHash=h; message.textContent='Found saved password hash. To play with the raw password you must re-enter it.'}})();
-
-</script>
-</body>
-</html> -->
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Impossible Password Game</title>
-<style>
-    body {
-        background: black;
-        color: #0f0;
-        font-family: monospace;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
+      const allGood = passed === total;
+      playBtn.disabled = !allGood;
+      copyBtn.disabled = val.length === 0;
+      msg.classList.toggle('hidden', !allGood);
     }
-    h1 {
-        text-align: center;
-        margin-top: 20px;
-        animation: glitch 1s infinite;
-    }
-    @keyframes glitch {
-        0% { text-shadow: 2px 0 red, -2px 0 blue; }
-        20% { text-shadow: -2px 0 red, 2px 0 blue; }
-        40% { text-shadow: 2px 0 red, -2px 0 blue; }
-        60% { text-shadow: -2px 0 red, 2px 0 blue; }
-        80% { text-shadow: 2px 0 red, -2px 0 blue; }
-        100% { text-shadow: -2px 0 red, 2px 0 blue; }
-    }
-    #gameArea {
-        text-align: center;
-        margin-top: 100px;
-        position: relative;
-        height: 300px;
-    }
-    input {
-        padding: 10px;
-        font-size: 18px;
-        background: #111;
-        border: 2px solid #0f0;
-        color: #0f0;
-        position: absolute;
-        transition: 0.2s ease;
-    }
-    button {
-        padding: 10px 20px;
-        background: #0f0;
-        color: black;
-        font-size: 18px;
-        border: none;
-        margin-top: 50px;
-        cursor: pointer;
-    }
-    .shake {
-        animation: shake 0.2s infinite;
-    }
-    @keyframes shake {
-        0% { transform: translate(1px, 1px) rotate(0deg); }
-        25% { transform: translate(-1px, -2px) rotate(-1deg); }
-        50% { transform: translate(-3px, 0px) rotate(1deg); }
-        75% { transform: translate(3px, 2px) rotate(0deg); }
-        100% { transform: translate(1px, -1px) rotate(1deg); }
-    }
-</style>
-</head>
-<body>
 
-<h1>💀 The Impossible Password Game 💀</h1>
-<div id="gameArea">
-    <input type="text" id="passwordInput" placeholder="Enter password..." />
-    <br>
-    <button id="submitBtn">Submit</button>
-</div>
-<p style="text-align:center;" id="message"></p>
+    pwd.addEventListener('input', evaluate);
 
-<script>
-const input = document.getElementById("passwordInput");
-const submitBtn = document.getElementById("submitBtn");
-const message = document.getElementById("message");
-const gameArea = document.getElementById("gameArea");
+    toggle.addEventListener('click', () => {
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+      toggle.textContent = pwd.type === 'password' ? '👁️' : '🙈';
+      pwd.focus();
+    });
 
-let secretPassword = "X7$A!42q"; // Very hard
-let attempts = 0;
+    playBtn.addEventListener('click', () => {
+      alert('🎉 Password accepted! You win.');
+    });
 
-// Make input move randomly to frustrate player
-setInterval(() => {
-    const x = Math.random() * (window.innerWidth - 200);
-    const y = Math.random() * (window.innerHeight - 300);
-    input.style.left = `${x}px`;
-    input.style.top = `${y}px`;
-}, 1200);
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pwd.value);
+        copyBtn.textContent = '✅ Copied';
+        setTimeout(() => (copyBtn.textContent = '📋 Copy'), 1200);
+      } catch (e) {
+        alert('Copy failed: ' + e.message);
+      }
+    });
 
-// Fun rule changes
-const randomHints = [
-    "Hint: It’s not what you think.",
-    "Rule change: Must type backwards!",
-    "Numbers first, then symbols, then letters.",
-    "Password changes every 30 seconds… maybe."
-];
-
-submitBtn.addEventListener("click", () => {
-    attempts++;
-    let value = input.value.trim();
-    if(value === secretPassword) {
-        message.innerHTML = `✅ YOU WON in ${attempts} attempts! But at what cost?`;
-        input.classList.remove("shake");
-    } else {
-        message.innerHTML = `❌ Wrong! ${randomHints[Math.floor(Math.random() * randomHints.length)]}`;
-        input.classList.add("shake");
-        setTimeout(() => input.classList.remove("shake"), 500);
-    }
-});
-</script>
-
+    // initial render
+    evaluate();
+  </script>
 </body>
 </html>
